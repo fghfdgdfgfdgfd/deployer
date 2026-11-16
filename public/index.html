@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>xr PANEL · Deploy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='25' y='25' width='50' height='50' fill='%23e5262a' transform='rotate(45 50 50)'/></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Vazirmatn:wght@300;400;800;900&display=swap">
+<style>
+:root{--bg:#030303;--tx:#efe9df;--mu:#9a958c;--rd:#e5262a;--ln:rgba(255,255,255,.14)}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{font-family:'Vazirmatn',Tahoma,sans-serif;background:radial-gradient(ellipse at 20% 0%,rgba(229,38,42,.16),transparent 55%),var(--bg);color:var(--tx);padding:max(22px,env(safe-area-inset-top)) 20px max(30px,env(safe-area-inset-bottom));overflow-x:hidden}
+.mono{font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
+.kj{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;user-select:none}
+.kj span{position:absolute;font-weight:900;color:rgba(255,255,255,.05);animation:fl 40s ease-in-out infinite alternate}
+@keyframes fl{to{transform:translate(26px,-34px) rotate(6deg);color:rgba(229,38,42,.09)}}
+.kj span:nth-child(1){font-size:150px;top:14%;left:-2%}.kj span:nth-child(2){font-size:110px;top:50%;right:2%;animation-duration:52s}
+.kj span:nth-child(3){font-size:90px;bottom:6%;left:12%;animation-duration:60s}.kj span:nth-child(4){font-size:70px;top:30%;right:30%;animation-duration:46s}
+.wrap{max-width:560px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;direction:ltr;margin-bottom:46px}
+.logo{font-weight:700}.logo b{color:var(--rd)}.logo i{display:inline-block;width:14px;height:14px;background:var(--rd);transform:rotate(45deg);margin-left:10px;box-shadow:0 0 18px var(--rd);animation:pl 5s ease-in-out infinite}
+@keyframes pl{50%{box-shadow:0 0 34px var(--rd);opacity:.8}}
+.lang{all:unset;cursor:pointer;padding:9px 16px;background:var(--rd);color:#fff;box-shadow:0 0 36px rgba(229,38,42,.55);transition:.8s}
+.lang:hover{box-shadow:0 0 56px rgba(229,38,42,.8)}
+.eye{display:flex;align-items:center;gap:12px;color:var(--rd);margin-bottom:18px;direction:ltr;justify-content:flex-end}.eye::after{content:"";width:46px;height:1px;background:var(--rd)}
+.step{display:none;animation:in 1.3s cubic-bezier(.2,.7,.2,1) both}.step.on{display:block}
+@keyframes in{from{opacity:0;transform:translateY(26px);filter:blur(8px)}}
+h1{font-size:clamp(44px,13vw,70px);font-weight:900;line-height:1.15;margin-bottom:20px}h1 em{color:var(--rd);font-style:normal}
+p.s{color:#c9c3b8;font-size:14px;line-height:2.1;margin-bottom:26px}
+label{display:block;color:var(--rd);margin:20px 0 8px}
+input,select{width:100%;font:inherit;font-size:14px;color:var(--tx);background:rgba(0,0,0,.6);border:1px solid var(--ln);padding:15px 16px;outline:0;transition:.7s;direction:ltr;text-align:left;border-radius:0}
+select{direction:inherit;text-align:start}
+input:focus,select:focus{border-color:var(--rd);box-shadow:0 0 28px rgba(229,38,42,.25)}
+.btn{all:unset;box-sizing:border-box;display:block;width:100%;text-align:center;cursor:pointer;margin-top:26px;padding:16px;font-weight:800;color:#0a0a0a;background:var(--tx);box-shadow:0 0 40px rgba(229,38,42,.28);transition:.8s cubic-bezier(.2,.7,.2,1)}
+.btn:hover{transform:translateY(-3px);box-shadow:0 0 64px rgba(229,38,42,.55)}
+.btn[aria-busy=true]{opacity:.5;pointer-events:none}
+.btn.g{background:#080808;color:var(--tx);border:1px solid var(--ln);box-shadow:none;margin-top:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg button{all:unset;cursor:pointer;padding:14px;border:1px solid var(--ln);background:rgba(0,0,0,.5);text-align:center;font-size:14px;line-height:1.7;transition:.7s}
+.seg button small{display:block;color:var(--mu);font-size:11px}
+.seg button.on{border-color:var(--rd);box-shadow:0 0 28px rgba(229,38,42,.3) inset}
+.tpl{margin-top:22px;padding:14px 16px;border:1px dashed var(--ln);font-size:13px;color:var(--mu);line-height:1.9}
+.tpl a{display:inline-block;color:var(--rd);font-weight:800;text-decoration:none;margin-top:4px}
+.err{color:#ff8b8e;font-size:13px;margin-top:16px;min-height:20px;line-height:1.8;direction:ltr;text-align:start;word-break:break-word}
+ul.log{list-style:none;padding:0}
+ul.log li{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--ln);color:var(--mu);transition:.9s}
+ul.log li i{width:12px;height:12px;border:1px solid var(--mu);transform:rotate(45deg);flex:none;transition:.9s}
+ul.log li.run{color:var(--tx)}ul.log li.run i{border-color:var(--rd);background:var(--rd);animation:pl 2.2s infinite;box-shadow:0 0 14px var(--rd)}
+ul.log li.ok{color:var(--tx)}ul.log li.ok i{background:var(--tx);border-color:var(--tx)}
+.dom{margin-top:6px;padding:20px;border:1px solid var(--rd);box-shadow:0 0 40px rgba(229,38,42,.3);direction:ltr;text-align:center;font-family:'JetBrains Mono',monospace;font-size:15px;word-break:break-all}
+.note{font-size:13px;color:var(--mu);line-height:2;margin-top:22px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="kj"><span>自由</span><span>家族</span><span>力</span><span>王</span></div>
+<div class="wrap">
+<header><div class="logo mono">XR<b>PANEL</b><i></i></div><button class="lang mono" id="lang">English</button></header>
+
+<section class="step on" id="s1">
+  <div class="eye mono" data-t="e1"></div>
+  <h1 data-t-html="h1"></h1><p class="s" data-t="d1"></p>
+  <label class="mono" data-t="tok"></label><input id="token" type="password" autocomplete="off" placeholder="Cloudflare API Token">
+  <div class="tpl"><span data-t="tpl"></span><br><a id="tplink" target="_blank" rel="noopener" data-t="tplb"></a></div>
+  <div class="err" id="e1"></div>
+  <button class="btn" id="b1" data-t="go"></button>
+</section>
+
+<section class="step" id="s2">
+  <div class="eye mono" data-t="e2"></div>
+  <h1 data-t-html="h2"></h1><p class="s" data-t="d2"></p>
+  <label class="mono" data-t="tg"></label>
+  <div class="seg" id="target"><button class="on" data-v="worker">Workers<small data-t="tw"></small></button><button data-v="pages">Pages<small data-t="tp"></small></button></div>
+  <div id="accw"><label class="mono" data-t="acc"></label><select id="acc"></select></div>
+  <label class="mono" data-t="nm"></label><input id="name" value="xr-panel" maxlength="40">
+  <label class="mono" data-t="pl"></label>
+  <div class="seg" id="plan"><button class="on" data-v="free" data-t="free"></button><button data-v="paid" data-t="paid"></button></div>
+  <div class="err" id="e2"></div>
+  <button class="btn" id="b2" data-t="dep"></button>
+</section>
+
+<section class="step" id="s3">
+  <div class="eye mono" data-t="e3"></div>
+  <h1 data-t-html="h3"></h1><p class="s" data-t="d3"></p>
+  <ul class="log" id="log"></ul>
+  <div class="err" id="e3"></div>
+  <button class="btn g" id="b3" style="display:none" data-t="back"></button>
+</section>
+
+<section class="step" id="s4">
+  <div class="eye mono" data-t="e4"></div>
+  <h1 data-t-html="h4"></h1><p class="s" data-t="d4"></p>
+  <div class="dom" id="dom"></div>
+  <a class="btn" id="open" target="_blank" rel="noopener" data-t="open"></a>
+  <button class="btn g" id="copy" data-t="copy"></button>
+  <p class="note" data-t="login"></p>
+</section>
+</div>
+
+<script>
+const T={fa:{e1:'Cloudflare / Deploy',h1:'نصب پنل<br><em>آزاد</em> و ساده',d1:'توکن Cloudflare رو وارد کن تا پنل روی اکانت خودت نصب بشه. توکن فقط برای همین نصب استفاده می‌شه و روی این سایت ذخیره نمی‌شه.',tok:'API Token',tpl:'توکن نداری؟ با دسترسی‌های آماده بساز (Workers، Pages، D1، آمار اکانت):',tplb:'ساخت توکن ↗',go:'تأیید توکن',
+e2:'Install / Settings',h2:'تنظیمات <em>نصب</em>',d2:'توکن معتبره. بگو روی Workers نصب بشه یا Pages.',tg:'Deploy target',tw:'workers.dev · پیشنهادی',tp:'pages.dev',acc:'Account',nm:'Name',pl:'Plan',free:'Free (۱۰۰ هزار/روز)',paid:'Paid',dep:'نصب روی Cloudflare',
+e3:'Installing',h3:'در حال <em>نصب</em>…',d3:'چند ثانیه صبر کن، صفحه رو نبند.',back:'بازگشت',
+e4:'Ready',h4:'پنل <em>آماده</em> شد',d4:'پنل شما روی این آدرس فعال شده:',open:'باز کردن پنل',copy:'کپی آدرس',copied:'کپی شد ✓',login:'ورود اولیه: نام کاربری admin و رمز admin — حتماً بلافاصله از Settings رمز رو عوض کن. آمار درخواست‌های روزانه در صفحه Home نمایش داده می‌شه.',
+db:'ساخت دیتابیس D1',project:'ساخت پروژه Pages',assets:'آپلود فایل‌های استاتیک',script:'نصب برنامه',domain:'فعال‌سازی دامنه workers.dev',check:'بررسی در دسترس بودن'},
+en:{e1:'Cloudflare / Deploy',h1:'Install the<br><em>free</em> panel',d1:'Enter your Cloudflare token to install the panel on your own account. It is only used for this install and is never stored on this site.',tok:'API Token',tpl:'No token? Create one with the right permissions (Workers, Pages, D1, analytics):',tplb:'Create token ↗',go:'Verify token',
+e2:'Install / Settings',h2:'Install <em>settings</em>',d2:'Token is valid. Choose Workers or Pages.',tg:'Deploy target',tw:'workers.dev · recommended',tp:'pages.dev',acc:'Account',nm:'Name',pl:'Plan',free:'Free (100k/day)',paid:'Paid',dep:'Deploy to Cloudflare',
+e3:'Installing',h3:'<em>Installing</em>…',d3:'Give it a few seconds, keep this page open.',back:'Back',
+e4:'Ready',h4:'Panel is <em>live</em>',d4:'Your panel is live at:',open:'Open panel',copy:'Copy address',copied:'Copied ✓',login:'First login: username admin, password admin — change it right away in Settings. Daily request usage shows on the Home page.',
+db:'Creating D1 database',project:'Creating Pages project',assets:'Uploading static files',script:'Deploying app',domain:'Enabling workers.dev domain',check:'Waiting until it is online'}};
+const $=s=>document.querySelector(s);let L=localStorage.lang||'fa',token='',plan='free',target='worker';
+const perms=[{key:'workers_scripts',type:'edit'},{key:'page',type:'edit'},{key:'d1',type:'edit'},{key:'account_analytics',type:'read'},{key:'account_settings',type:'read'}];
+$('#tplink').href='https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys='+encodeURIComponent(JSON.stringify(perms))+'&accountId=*&zoneId=all&name='+encodeURIComponent('xr-panel');
+function render(){document.documentElement.lang=L;document.documentElement.dir=L=='fa'?'rtl':'ltr';$('#lang').textContent=L=='fa'?'English':'فارسی';
+ document.querySelectorAll('[data-t]').forEach(e=>e.textContent=T[L][e.dataset.t]);document.querySelectorAll('[data-t-html]').forEach(e=>e.innerHTML=T[L][e.dataset.tHtml])}
+$('#lang').onclick=()=>{L=L=='fa'?'en':'fa';localStorage.lang=L;render()};
+const show=n=>document.querySelectorAll('.step').forEach(s=>s.classList.toggle('on',s.id=='s'+n));
+const post=async(u,b)=>{const r=await fetch(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});const j=await r.json();if(!r.ok)throw new Error(j.error||'error');return j};
+$('#b1').onclick=async e=>{const b=e.target;token=$('#token').value.trim();$('#e1').textContent='';b.setAttribute('aria-busy',1);
+ try{const j=await post('/api/verify',{token});$('#acc').innerHTML=j.accounts.map(a=>`<option value="${a.id}">${a.name.replace(/[<>&"]/g,'')}</option>`).join('');$('#accw').style.display=j.accounts.length>1?'':'none';show(2)}
+ catch(x){$('#e1').textContent=x.message}b.removeAttribute('aria-busy')};
+$('#token').onkeydown=e=>e.key=='Enter'&&$('#b1').click();
+const seg=(id,cb)=>document.querySelectorAll(id+' button').forEach(b=>b.onclick=()=>{document.querySelectorAll(id+' button').forEach(x=>x.classList.toggle('on',x==b));cb(b.dataset.v)});
+seg('#plan',v=>plan=v);seg('#target',v=>target=v);
+$('#b2').onclick=async()=>{$('#e2').textContent='';const name=$('#name').value.trim().toLowerCase();
+ try{const j=await post('/api/deploy',{token,accountId:$('#acc').value,name,plan,target});show(3);$('#e3').textContent='';$('#b3').style.display='none';poll(j.id,target)}catch(x){$('#e2').textContent=x.message}};
+const ORDER={worker:['db','assets','script','domain','check'],pages:['db','project','assets','script','check']};
+async function poll(id,tg){const j=await(await fetch('/api/job/'+id)).json(),n=j.logs.length;
+ $('#log').innerHTML=ORDER[tg].map((k,i)=>`<li class="${i<n-1||j.status=='done'?'ok':i==n-1?(j.status=='error'?'':'run'):''}"><i></i>${T[L][k]}</li>`).join('');
+ if(j.status=='run')return setTimeout(()=>poll(id,tg),900);
+ if(j.status=='error'){$('#e3').textContent=j.error;$('#b3').style.display='block';return}
+ token='';$('#token').value='';$('#dom').textContent=j.domain;$('#open').href='https://'+j.domain;setTimeout(()=>show(4),900)}
+$('#b3').onclick=()=>show(2);
+$('#copy').onclick=async()=>{await navigator.clipboard.writeText($('#dom').textContent);$('#copy').textContent=T[L].copied;setTimeout(render,1800)};
+render();
+</script>
+</body>
+</html>
