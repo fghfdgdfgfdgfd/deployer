@@ -19,9 +19,13 @@
 
 ورود اولیه پنل: `admin` / `admin` (فوراً عوض کن).
 
-## تغییرات در worker
+## سورس worker از GitHub
+فایل‌های worker داخل این پروژه نیستند؛ موقع هر نصب از `github.com/amirh00sain/xrpanel` (شاخه‌ی `main`) دانلود می‌شوند. ریپو باید `src/index.js` و پوشه‌ی `public/` داشته باشد (همان ساختار xr-worker.zip).
+متغیرهای اختیاری Railway: `GITHUB_REPO` (پیش‌فرض `amirh00sain/xrpanel`)، `GITHUB_BRANCH` (پیش‌فرض `main`)، `GITHUB_TOKEN` (برای ریپوی خصوصی).
+
+## تغییرات در worker (داخل xr-worker.zip)
 - `src/index.js`: مسیر `/api/cf` (کش ۶۰ ثانیه‌ای؛ Workers و Pages Functions هر دو شمرده می‌شن).
 - `src/ui.js`: کارت «Requests today» در Home.
 
 ## Workers یا Pages
-در مرحله‌ی تنظیمات می‌توانی انتخاب کنی. Workers با workers.dev و Pages با pages.dev. برای Pages، worker موقع build داکر با esbuild به یک فایل `_worker.js` تبدیل می‌شود و مسیر `/static/*` از Worker معاف است. بایندینگ D1 و secretها روی خود پروژه‌ی Pages تنظیم می‌شوند.
+در مرحله‌ی تنظیمات می‌توانی انتخاب کنی. Workers با workers.dev و Pages با pages.dev. برای Pages، worker موقع نصب با esbuild به یک فایل `_worker.js` تبدیل می‌شود و مسیر `/static/*` از Worker معاف است. بایندینگ D1 و secretها روی خود پروژه‌ی Pages تنظیم می‌شوند.

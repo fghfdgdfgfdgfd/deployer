@@ -103,12 +103,12 @@ const T={fa:{e1:'Cloudflare / Deploy',h1:'نصب پنل<br><em>آزاد</em> و 
 e2:'Install / Settings',h2:'تنظیمات <em>نصب</em>',d2:'توکن معتبره. بگو روی Workers نصب بشه یا Pages.',tg:'Deploy target',tw:'workers.dev · پیشنهادی',tp:'pages.dev',acc:'Account',nm:'Name',pl:'Plan',free:'Free (۱۰۰ هزار/روز)',paid:'Paid',dep:'نصب روی Cloudflare',
 e3:'Installing',h3:'در حال <em>نصب</em>…',d3:'چند ثانیه صبر کن، صفحه رو نبند.',back:'بازگشت',
 e4:'Ready',h4:'پنل <em>آماده</em> شد',d4:'پنل شما روی این آدرس فعال شده:',open:'باز کردن پنل',copy:'کپی آدرس',copied:'کپی شد ✓',login:'ورود اولیه: نام کاربری admin و رمز admin — حتماً بلافاصله از Settings رمز رو عوض کن. آمار درخواست‌های روزانه در صفحه Home نمایش داده می‌شه.',
-db:'ساخت دیتابیس D1',project:'ساخت پروژه Pages',assets:'آپلود فایل‌های استاتیک',script:'نصب برنامه',domain:'فعال‌سازی دامنه workers.dev',check:'بررسی در دسترس بودن'},
+src:'دریافت سورس از GitHub',db:'ساخت دیتابیس D1',project:'ساخت پروژه Pages',assets:'آپلود فایل‌های استاتیک',script:'نصب برنامه',domain:'فعال‌سازی دامنه workers.dev',check:'بررسی در دسترس بودن'},
 en:{e1:'Cloudflare / Deploy',h1:'Install the<br><em>free</em> panel',d1:'Enter your Cloudflare token to install the panel on your own account. It is only used for this install and is never stored on this site.',tok:'API Token',tpl:'No token? Create one with the right permissions (Workers, Pages, D1, analytics):',tplb:'Create token ↗',go:'Verify token',
 e2:'Install / Settings',h2:'Install <em>settings</em>',d2:'Token is valid. Choose Workers or Pages.',tg:'Deploy target',tw:'workers.dev · recommended',tp:'pages.dev',acc:'Account',nm:'Name',pl:'Plan',free:'Free (100k/day)',paid:'Paid',dep:'Deploy to Cloudflare',
 e3:'Installing',h3:'<em>Installing</em>…',d3:'Give it a few seconds, keep this page open.',back:'Back',
 e4:'Ready',h4:'Panel is <em>live</em>',d4:'Your panel is live at:',open:'Open panel',copy:'Copy address',copied:'Copied ✓',login:'First login: username admin, password admin — change it right away in Settings. Daily request usage shows on the Home page.',
-db:'Creating D1 database',project:'Creating Pages project',assets:'Uploading static files',script:'Deploying app',domain:'Enabling workers.dev domain',check:'Waiting until it is online'}};
+src:'Fetching source from GitHub',db:'Creating D1 database',project:'Creating Pages project',assets:'Uploading static files',script:'Deploying app',domain:'Enabling workers.dev domain',check:'Waiting until it is online'}};
 const $=s=>document.querySelector(s);let L=localStorage.lang||'fa',token='',plan='free',target='worker';
 const perms=[{key:'workers_scripts',type:'edit'},{key:'page',type:'edit'},{key:'d1',type:'edit'},{key:'account_analytics',type:'read'},{key:'account_settings',type:'read'}];
 $('#tplink').href='https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys='+encodeURIComponent(JSON.stringify(perms))+'&accountId=*&zoneId=all&name='+encodeURIComponent('xr-panel');
@@ -125,7 +125,7 @@ const seg=(id,cb)=>document.querySelectorAll(id+' button').forEach(b=>b.onclick=
 seg('#plan',v=>plan=v);seg('#target',v=>target=v);
 $('#b2').onclick=async()=>{$('#e2').textContent='';const name=$('#name').value.trim().toLowerCase();
  try{const j=await post('/api/deploy',{token,accountId:$('#acc').value,name,plan,target});show(3);$('#e3').textContent='';$('#b3').style.display='none';poll(j.id,target)}catch(x){$('#e2').textContent=x.message}};
-const ORDER={worker:['db','assets','script','domain','check'],pages:['db','project','assets','script','check']};
+const ORDER={worker:['src','db','assets','script','domain','check'],pages:['src','db','project','assets','script','check']};
 async function poll(id,tg){const j=await(await fetch('/api/job/'+id)).json(),n=j.logs.length;
  $('#log').innerHTML=ORDER[tg].map((k,i)=>`<li class="${i<n-1||j.status=='done'?'ok':i==n-1?(j.status=='error'?'':'run'):''}"><i></i>${T[L][k]}</li>`).join('');
  if(j.status=='run')return setTimeout(()=>poll(id,tg),900);

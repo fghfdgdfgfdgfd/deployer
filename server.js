@@ -2,6 +2,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -28,16 +30,53 @@ function walk(dir, base = dir) {
   });
 }
 
-const loadFiles = () => walk(path.join(ROOT, 'worker/public')).map(f => {
-  const buf = fs.readFileSync(f.file), ext = path.extname(f.file).slice(1), b64 = buf.toString('base64');
-  return { ...f, b64, ext, size: buf.length, ct: MIME[ext] || 'application/octet-stream' };
-});
+const REPO = process.env.GITHUB_REPO || 'amirh00sain/xrpanel', BRANCH = process.env.GITHUB_BRANCH || 'main';
+
+// Downloads the worker source straight from GitHub (tar.gz, parsed here: no dependencies).
+async function fetchSource() {
+  const r = await fetch(`https://codeload.github.com/${REPO}/tar.gz/refs/heads/${BRANCH}`, { headers: process.env.GITHUB_TOKEN ? { Authorization: 'Bearer ' + process.env.GITHUB_TOKEN } : {} });
+  if (!r.ok) throw new Error(`GitHub ${r.status}: cannot download ${REPO}@${BRANCH}`);
+  const tar = zlib.gunzipSync(Buffer.from(await r.arrayBuffer())), all = new Map();
+  for (let o = 0, pax = null; o + 512 <= tar.length;) {
+    const h = tar.subarray(o, o + 512); if (!h[0]) break;
+    let name = h.toString('utf8', 0, 100).replace(/\0.*$/, ''); const pre = h.toString('utf8', 345, 500).replace(/\0.*$/, ''); if (pre) name = pre + '/' + name;
+    const size = parseInt(h.toString('ascii', 124, 136).replace(/\0.*$/, '').trim() || '0', 8), type = String.fromCharCode(h[156]);
+    const data = tar.subarray(o + 512, o + 512 + size); o += 512 + Math.ceil(size / 512) * 512;
+    if (type === 'x') { const m = /\d+ path=([^\n]*)\n/.exec(data.toString()); pax = m && m[1]; continue; }
+    if (type === 'g') continue;
+    if (pax) { name = pax; pax = null; }
+    if (type === '0' || type === '\0') all.set(name, Buffer.from(data));
+  }
+  const idx = [...all.keys()].find(k => /(^|\/)src\/index\.js$/.test(k));
+  if (!idx) throw new Error(`src/index.js not found in ${REPO}@${BRANCH}`);
+  const root = idx.slice(0, -'src/index.js'.length), files = [], mods = [];
+  for (const [k, buf] of all) {
+    if (!k.startsWith(root)) continue;
+    const rel = k.slice(root.length);
+    if (rel.startsWith('public/')) { const p = rel.slice(6), ext = path.extname(p).slice(1), b64 = buf.toString('base64'); files.push({ rel: p, b64, ext, size: buf.length, ct: MIME[ext] || 'application/octet-stream' }); }
+    else if (/^src\/[^/]+\.js$/.test(rel)) mods.push({ name: rel.slice(4), buf });
+  }
+  return { files, mods };
+}
+
+// Pages needs ONE file: bundle the modules with esbuild.
+async function bundleWorker(mods) {
+  const { build } = await import('esbuild');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'xr-'));
+  try {
+    for (const m of mods) fs.writeFileSync(path.join(dir, m.name), m.buf);
+    const out = await build({ entryPoints: [path.join(dir, 'index.js')], bundle: true, format: 'esm', platform: 'neutral', target: 'es2022', external: ['cloudflare:sockets'], write: false, outfile: path.join(dir, 'out.js'), logLevel: 'silent' });
+    return Buffer.from(out.outputFiles[0].contents);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
 const limitOf = plan => (plan === 'paid' ? '0' : '100000');
 
 async function deployPages(job, { token, accountId, name, plan }) {
   const log = m => job.logs.push(m);
   const a = `/accounts/${accountId}`;
   try {
+    log('src');
+    const src = await fetchSource();
     log('db');
     const dbName = name + '-db';
     const found = (await cf(token, 'GET', `${a}/d1/database?name=${encodeURIComponent(dbName)}`)).find(d => d.name === dbName);
@@ -54,7 +93,7 @@ async function deployPages(job, { token, accountId, name, plan }) {
     log('assets');
     const { blake3 } = await import('hash-wasm');
     const files = [];
-    for (const f of loadFiles()) files.push({ ...f, hash: (await blake3(f.b64 + f.ext)).slice(0, 32) });
+    for (const f of src.files) files.push({ ...f, hash: (await blake3(f.b64 + f.ext)).slice(0, 32) });
     const jwt = (await cf(token, 'GET', `${a}/pages/projects/${name}/upload-token`)).jwt;
     const hashes = files.map(f => f.hash);
     const missing = new Set(await cf(jwt, 'POST', '/pages/assets/check-missing', { hashes }));
@@ -66,7 +105,7 @@ async function deployPages(job, { token, accountId, name, plan }) {
     // _worker.bundle = a multipart document with metadata + the bundled module (built by esbuild in the Dockerfile)
     const inner = new FormData();
     inner.append('metadata', new Blob([JSON.stringify({ main_module: '_worker.js' })], { type: 'application/json' }));
-    inner.append('_worker.js', new Blob([fs.readFileSync(path.join(ROOT, 'worker/dist/_worker.js'))], { type: 'application/javascript+module' }), '_worker.js');
+    inner.append('_worker.js', new Blob([await bundleWorker(src.mods)], { type: 'application/javascript+module' }), '_worker.js');
     const bundle = await new Response(inner).blob();
     const fd = new FormData();
     fd.append('manifest', JSON.stringify(Object.fromEntries(files.map(f => [f.rel, f.hash]))));
@@ -90,6 +129,8 @@ async function deploy(job, { token, accountId, name, plan }) {
   const log = m => job.logs.push(m);
   const a = `/accounts/${accountId}`;
   try {
+    log('src');
+    const src = await fetchSource();
     // 1. database
     log('db');
     const dbName = name + '-db';
@@ -98,10 +139,7 @@ async function deploy(job, { token, accountId, name, plan }) {
 
     // 2. static assets
     log('assets');
-    const files = walk(path.join(ROOT, 'worker/public')).map(f => {
-      const buf = fs.readFileSync(f.file), ext = path.extname(f.file).slice(1), b64 = buf.toString('base64');
-      return { ...f, b64, ext, size: buf.length, hash: crypto.createHash('sha256').update(b64 + ext).digest('hex').slice(0, 32) };
-    });
+    const files = src.files.map(f => ({ ...f, hash: crypto.createHash('sha256').update(f.b64 + f.ext).digest('hex').slice(0, 32) }));
     const manifest = Object.fromEntries(files.map(f => [f.rel, { hash: f.hash, size: f.size }]));
     const sess = await cf(token, 'POST', `${a}/workers/scripts/${name}/assets-upload-session`, { manifest });
     let jwt = sess.jwt;
@@ -127,8 +165,7 @@ async function deploy(job, { token, accountId, name, plan }) {
     };
     const fd = new FormData();
     fd.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-    for (const f of fs.readdirSync(path.join(ROOT, 'worker/src')).filter(x => x.endsWith('.js')))
-      fd.append(f, new Blob([fs.readFileSync(path.join(ROOT, 'worker/src', f))], { type: 'application/javascript+module' }), f);
+    for (const m of src.mods) fd.append(m.name, new Blob([m.buf], { type: 'application/javascript+module' }), m.name);
     await cf(token, 'PUT', `${a}/workers/scripts/${name}`, fd);
 
     // 4. workers.dev address
